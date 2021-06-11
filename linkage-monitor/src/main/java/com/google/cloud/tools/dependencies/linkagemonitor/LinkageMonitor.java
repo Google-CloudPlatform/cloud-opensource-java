@@ -322,7 +322,7 @@ public class LinkageMonitor {
   /**
    * Returns a message on {@code snapshotProblems} that do not exist in {@code baselineProblems}.
    */
-    @VisibleForTesting
+   @VisibleForTesting
   static String messageForNewErrors(
       Set<LinkageProblem> snapshotProblems,
       Set<LinkageProblem> baselineProblems,
@@ -330,13 +330,28 @@ public class LinkageMonitor {
     Set<LinkageProblem> newProblems = Sets.difference(snapshotProblems, baselineProblems);
     Builder<ClassPathEntry> problematicJars = ImmutableSet.builder();
 
-      StringBuilder message;
-      ClassFile sourceClass = linkageProblem.getSourceClass();
-      message.append(
-          String.format(
-              "  referenced from %s (%s)\n",
-              sourceClass.getBinaryName(), sourceClass.getClassPathEntry()));
-        problematicJars.add(sourceClass.getClassPathEntry());
+    ImmutableListMultimap<String, LinkageProblem> groupedBySymbolProblem =
+        Multimaps.index(newProblems, problem -> problem.formatSymbolProblem());
+    StringBuilder message =
+        new StringBuilder(
+            "Newly introduced problem"
+                + (groupedBySymbolProblem.keySet().size() > 1 ? "s" : "")
+                + ":\n");
+    for (String problem : groupedBySymbolProblem.keySet()) {
+      message.append(problem + "\n");
+
+      for (LinkageProblem linkageProblem : groupedBySymbolProblem.get(problem)) {
+        // This is null for ClassNotFound error.
+        if (linkageProblem.getTargetClass() != null) {
+          problematicJars.add(linkageProblem.getTargetClass().getClassPathEntry());
+        }
+
+        ClassFile sourceClass = linkageProblem.getSourceClass();
+        message.append(
+            String.format(
+                "  referenced from %s (%s)\n",
+                sourceClass.getBinaryName(), sourceClass.getClassPathEntry()));
+          problematicJars.add(sourceClass.getClassPathEntry());
       }
     }
 
@@ -345,7 +360,7 @@ public class LinkageMonitor {
 
     return message.toString();
   }
-
+  
   /** Returns a message on {@code fixedProblems}. */
   @VisibleForTesting
   static String messageForFixedErrors(Set<LinkageProblem> fixedProblems) {
