@@ -333,9 +333,7 @@ public class LinkageMonitor {
     ImmutableListMultimap<String, LinkageProblem> groupedBySymbolProblem =
         Multimaps.index(newProblems, problem -> problem.formatSymbolProblem());
     StringBuilder message =
-        new StringBuilder(
-            "Newly introduced problem"
-                + (groupedBySymbolProblem.keySet().size() > 1 ? "s" : "")
+        new StringBuilder((groupedBySymbolProblem.keySet().size() > 1 ? "s" : "")
                 + ":\n");
     for (String problem : groupedBySymbolProblem.keySet()) {
       message.append(problem + "\n");
